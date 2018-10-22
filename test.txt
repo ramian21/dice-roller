@@ -1,0 +1,33 @@
+
+      else:
+        iterations = int(numbers[0])
+        sumRolls = 0
+        die = int(numbers[1])
+        if die < 1:
+          event.msg.reply('Roll a valid number ya dingus')
+          return
+          else:
+          for x in range(iterations):
+            roll = random.randint(1, die)
+            sumRolls += roll
+          result += (-1 if component[0]=='-' else 1) * sumRolls
+          event.msg.reply('Rolling {}.. You rolled a {}'.format(dieString, result))
+
+      elif len(numbers) == 3:
+          iterations = int(numbers[0])
+          sumRolls = 0
+          rolls = []
+          die = int(numbers[2])
+          if die < 1:
+            event.msg.reply('Roll a valid number ya dingus')
+            return
+          else:
+            for x in range(iterations):
+              roll = random.randint(1, die)
+              rolls.append(roll)
+            rolls.remove(min(rolls))
+            sumRolls = sum(min)
+            result += (-1 if component[0]=='-' else 1) * sumRolls
+            event.msg.reply('Rolling {}.. You rolled a {}'.format(dieString, result))
+
+
