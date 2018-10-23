@@ -1,5 +1,8 @@
 from disco.bot import Plugin
 import random
+import re
+
+# TODO: comment this mess
 
 
 class RollDicePlugin(Plugin):
@@ -17,9 +20,10 @@ class RollDicePlugin(Plugin):
 
   @Plugin.command('r', '<dieString:str>')
   def on_roll_command(self, event, dieString):
-    result = 0;
-    event.msg.reply('{}'.format(dieString))
-    components = dieString.split(r"(?=\-|\+)")
+    # sum of valid rolls
+    result = 0; 
+    components = re.findall(r'[-+]?[^-+]+', dieString)
+    dropText = ''
     event.msg.reply('{}'.format(components))
     for component in components:
       componentString = component
@@ -44,4 +48,8 @@ class RollDicePlugin(Plugin):
           rolls.append(roll)
           sumRolls = sum(rolls)
           result += (-1 if component[0]=='-' else 1) * roll
-    event.msg.reply('Rolling {}.. You rolled {}, totaling {}'.format(dieString, rolls, result))
+      if len(numbers) == 3:
+        drop = min(rolls)
+        result -= drop
+        dropText = ' dropping {},'.format(drop)
+    event.msg.reply('Rolling {}.. You rolled {},{} totaling {}'.format(dieString, rolls, dropText, result))
