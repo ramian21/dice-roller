@@ -6,50 +6,105 @@ import re
 
 
 class RollDicePlugin(Plugin):
-  @Plugin.command('test')
-  def on_roll_command(self, event):
-    boop = [6, 5, 4]
-    event.msg.reply('testarray')
-    event.msg.reply(boop)
+
+  @Plugin.listen('MessageCreate')
+  def on_message_create(self, event):
+    args = event.content.split();
+    if args[0][0]!= '!' or str(event.author) == 'RiceDoller#3067':
+      return
+    if args[0] == '!r':
+      try:
+        self.roll_function(event, args[1])
+      except:
+        event.reply('Invalid syntax! \
+!r [optional number dice]d[required number dice sides][d optional number of dice to drop]\
+[optional +/- more rolls or numbers]')
 
   @Plugin.command('ping')
   def on_ping_command(self, event):
-    boop = [6, 5, 4]
     event.msg.reply('Pong!')
-    event.msg.reply('{}'.format(boop))
+    event.msg.reply(self.test_func())
 
   @Plugin.command('r', '<dieString:str>')
   def on_roll_command(self, event, dieString):
+    self.roll_function(event, dieString)
+
+
+  def roll_dice(self, numSides, numTimes):
+    rolls = []
+    for iteration in range(numTimes):
+      roll = random.randint(1, numSides)
+      rolls.append(roll)
+    return rolls
+  
+  def roll_function(self, event, dieString):
+    
     # sum of valid rolls
     result = 0; 
-    components = re.findall(r'[-+]?[^-+]+', dieString)
-    dropText = ''
-    event.msg.reply('{}'.format(components))
-    for component in components:
-      componentString = component
-      if component[0] == '+' or component[0] == '-':
-        componentString = component[1:]
-      numbers = componentString.split('d') 
-      if len(numbers) == 1:
-        result += (-1 if component[0]=='-' else 1) * int(numbers[0])
+
+    # string containing result text for each roll
+    resultText = ''
+   
+    # split arguments into each term
+    terms = re.findall(r'[-+]?[^-+]+', dieString)
+      
+    resultText = dieString + '\n'
+
+    # iterate thru list of terms
+    for term in terms:
+
+      # default text when no rolls need to be dropped 
+      dropText = ''
+
+      # 0 as the default number of rolls to drop
+      numDroppedRolls = 0
+
+      # save a copy of the term to use
+      termString = term
+
+      # if 2+ terms, each term after first will be added or subtracted
+      if term[0] == '+' or term[0] == '-':
+        termString = term[1:]
+
+      # split the term into each possible component of a dice roll
+      components = termString.split('d') 
+
+      # if there is only component, no rolling is needed. add/subtract directly 
+      if len(components) == 1:
+        result += (-1 if term[0]=='-' else 1) * int(components[0])
         continue
+      if len(components) == 3:
+        numDroppedRolls = int(components[2])
+
+      # lists for each roll and dropped roll
       rolls = []
-      sumRolls = 0;
-      if numbers[0] == '':
-        numbers[numbers.index('')] = 1
-      iterations = int(numbers[0])
-      die = int(numbers[1])
-      if die < 1:
-        event.msg.reply('Roll a valid number ya dingus')
+      droppedRolls = []
+
+      # if the first component in the array is empty, assume 1 die roll
+      if components[0] == '':
+        components[components.index('')] = 1
+
+      # parse the type of die and number of times to roll it
+      iterations = int(components[0])
+      die = int(components[1])
+
+      # error check to see if somehow a negative sided die is being rolled 
+      if die < 1 or numDroppedRolls >= iterations:
+        event.reply('Roll a valid number ya dingus')
         return
-      else:
-        for x in range(iterations):
-          roll = random.randint(1, die)
-          rolls.append(roll)
-          sumRolls = sum(rolls)
-          result += (-1 if component[0]=='-' else 1) * roll
-      if len(numbers) == 3:
-        drop = min(rolls)
+      else: 
+        # roll for the number of iterations, find the sum, combine with result  
+        rolls = self.roll_dice(die, iterations)
+        result += (-1 if term[0]=='-' else 1) * sum(rolls)
+
+      # if any rolls need be dropped, do so here    
+      tempRolls = rolls.copy()
+      for x in range(numDroppedRolls):
+        drop = min(tempRolls)
+        tempRolls.remove(drop)
+        droppedRolls.append(drop)
         result -= drop
-        dropText = ' dropping {},'.format(drop)
-    event.msg.reply('Rolling {}.. You rolled {},{} totaling {}'.format(dieString, rolls, dropText, result))
+        dropText = ' dropping {}'.format(droppedRolls)
+
+      resultText += 'Rolling {}d{}.. You rolled {},{} \n'.format(iterations, die, rolls, dropText)
+    event.reply('{}totaling {}'.format(resultText, result))
