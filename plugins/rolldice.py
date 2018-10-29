@@ -15,10 +15,9 @@ class RollDicePlugin(Plugin):
     if args[0] == '!r':
       try:
         self.roll_function(event, args[1])
-      except:
-        event.reply('Invalid syntax! \
-!r [optional number dice]d[required number dice sides][d optional number of dice to drop]\
-[optional +/- more rolls or numbers]')
+      except Error as e:
+        event.reply(e)
+        event.reply('Invalid syntax! Usage: !r [optional amount]d[required sides][d optional drop]')
 
   @Plugin.command('ping')
   def on_ping_command(self, event):
@@ -44,11 +43,14 @@ class RollDicePlugin(Plugin):
 
     # string containing result text for each roll
     resultText = ''
-   
+
     # split arguments into each term
     terms = re.findall(r'[-+]?[^-+]+', dieString)
       
-    resultText = dieString + '\n'
+    # array containing non-die terms
+    constants = []
+   
+    resultText = str(event.author).split('#')[0] + " rolls " + dieString + '\n'
 
     # iterate thru list of terms
     for term in terms:
@@ -71,7 +73,7 @@ class RollDicePlugin(Plugin):
 
       # if there is only component, no rolling is needed. add/subtract directly 
       if len(components) == 1:
-        result += (-1 if term[0]=='-' else 1) * int(components[0])
+        constants.append((-1 if term[0]=='-' else 1) * int(components[0]))
         continue
       if len(components) == 3:
         numDroppedRolls = int(components[2])
@@ -106,5 +108,6 @@ class RollDicePlugin(Plugin):
         result -= drop
         dropText = ' dropping {}'.format(droppedRolls)
 
-      resultText += 'Rolling {}d{}.. You rolled {},{} \n'.format(iterations, die, rolls, dropText)
-    event.reply('{}totaling {}'.format(resultText, result))
+      resultText += 'Rolling {}d{}.. Result: {},{} \n'.format(iterations, die, rolls, dropText)
+    constantsResult = sum(constants)  
+    event.reply('{}Total: {}{} = {}'.format(resultText, result, (str(constantsResult) if constantsResult < 0 else '+' + str(constantsResult)), (result + constantsResult)))
